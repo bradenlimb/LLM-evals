@@ -308,6 +308,23 @@ def main():
                     print(f"System: {response.content}")
                     conversation.append(response)
 
+        # The loop only ends when the user exits: collect feedback on the whole
+        # conversation. Done outside the user-query span so time spent typing
+        # isn't counted as latency on the final trace.
+        feedback = ""
+        while feedback not in ("yes", "no"):
+            feedback = input("Was this conversation helpful? (Yes/No): ").strip().lower()
+        user_comment = input("Please give us a reason for your answer. This will help us improve: ").strip()
+
+        # Score at the session level so it applies to every trace in the conversation
+        langfuse.create_score(
+            session_id=session_id,
+            name="conversation_usefulness",
+            value=feedback.capitalize(),
+            data_type="CATEGORICAL",
+            comment=user_comment,
+        )
+
     except Exception as e:
         print(f"An unexpected error occurred in the main loop: {e}")
         sys.exit(1)
